@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>邮件发送测试</title>
+</head>
+<body>
+    <h1>邮件发送功能测试</h1>
+
+    <div>
+        <h2>测试API连接</h2>
+        <button onclick="testApiConnection()">测试API连接</button>
+        <div id="apiResult"></div>
+    </div>
+
+    <div>
+        <h2>发送测试邮件</h2>
+        <form onsubmit="sendTestEmail(event)">
+            <div>
+                <label>发件人:</label>
+                <input type="email" id="testFromEmail" value="wmhi0y8y@zhangxuemin.work" required>
+            </div>
+            <div>
+                <label>收件人:</label>
+                <input type="email" id="testToEmail" value="wmhi0y8y@zhangxuemin.work" required>
+            </div>
+            <div>
+                <label>主题:</label>
+                <input type="text" id="testSubject" value="测试邮件" required>
+            </div>
+            <div>
+                <label>内容:</label>
+                <textarea id="testBody" rows="4" required>这是通过测试页面发送的邮件</textarea>
+            </div>
+            <button type="submit">发送测试邮件</button>
+        </form>
+        <div id="sendResult"></div>
+    </div>
+
+    <script>
+        async function testApiConnection() {
+            const resultDiv = document.getElementById('apiResult');
+            try {
+                console.log('测试API连接...');
+                const response = await fetch('/api/emails');
+                const data = await response.json();
+                console.log('API响应:', data);
+                resultDiv.innerHTML = '<p style="color: green;">✅ API连接成功！邮箱数量: ' + data.length + '</p>';
+            } catch (error) {
+                console.error('API连接失败:', error);
+                resultDiv.innerHTML = '<p style="color: red;">❌ API连接失败: ' + error.message + '</p>';
+            }
+        }
+
+        async function sendTestEmail(event) {
+            event.preventDefault();
+            const resultDiv = document.getElementById('sendResult');
+
+            const formData = {
+                from_email: document.getElementById('testFromEmail').value,
+                to_email: document.getElementById('testToEmail').value,
+                subject: document.getElementById('testSubject').value,
+                body: document.getElementById('testBody').value
+            };
+
+            try {
+                console.log('发送测试邮件...');
+                console.log('请求数据:', formData);
+
+                const response = await fetch('/api/send-email', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(formData)
+                });
+
+                console.log('响应状态:', response.status);
+                const result = await response.json();
+                console.log('响应数据:', result);
+
+                if (response.ok) {
+                    resultDiv.innerHTML = '<p style="color: green;">✅ 邮件发送成功！</p>';
+                } else {
+                    resultDiv.innerHTML = '<p style="color: red;">❌ 发送失败: ' + (result.detail || '未知错误') + '</p>';
+                }
+            } catch (error) {
+                console.error('发送失败:', error);
+                resultDiv.innerHTML = '<p style="color: red;">❌ 发送失败: ' + error.message + '</p>';
+            }
+        }
+
+        // 页面加载时自动测试API连接
+        window.onload = function() {
+            console.log('测试页面加载完成');
+            console.log('当前URL:', window.location.href);
+            testApiConnection();
+        };
+    </script>
+</body>
+</html>

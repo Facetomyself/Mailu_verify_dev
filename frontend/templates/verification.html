@@ -1,0 +1,231 @@
+{% extends "base.html" %}
+
+{% block title %}验证码查看 - Mailu验证码平台{% endblock %}
+
+{% set current_page = 'verification' %}
+
+{% block content %}
+    <!-- 搜索区域 -->
+    <section class="card fade-in">
+        <div class="card-header">
+            <h3 class="card-title">🔍 查询验证码</h3>
+        </div>
+        <div class="card-content">
+            <form onsubmit="searchVerifications(); return false;" style="display: flex; gap: 1rem; flex-wrap: wrap;">
+                <div style="flex: 1; min-width: 250px;">
+                    <input type="email" id="searchEmail" class="form-input" placeholder="输入邮箱地址" required>
+                </div>
+                <button type="submit" class="btn btn-primary">🔍 搜索</button>
+                <button type="button" class="btn btn-secondary" onclick="loadAllVerifications()">📋 加载全部</button>
+                <button type="button" class="btn btn-success" onclick="refreshVerifications()">🔄 刷新</button>
+            </form>
+        </div>
+    </section>
+
+    <!-- 验证码列表 -->
+    <section class="card fade-in">
+        <div class="card-content">
+            <div id="verificationContainer">
+                <div class="loading">
+                    <div class="loading-spinner"></div>
+                    请输入邮箱地址并点击搜索...
+                </div>
+            </div>
+        </div>
+    </section>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+    let currentEmail = '';
+
+    // 页面加载时处理URL参数
+    document.addEventListener('DOMContentLoaded', function() {
+        // 获取URL参数中的email
+        const urlParams = new URLSearchParams(window.location.search);
+        const emailFromUrl = urlParams.get('email');
+
+        if (emailFromUrl) {
+            // 自动填充搜索框
+            document.getElementById('searchEmail').value = emailFromUrl;
+            // 自动执行搜索
+            currentEmail = emailFromUrl;
+            loadVerifications(emailFromUrl);
+        }
+    });
+
+    function searchVerifications() {
+        const email = document.getElementById('searchEmail').value.trim();
+        if (!email) {
+            alert('请输入邮箱地址');
+            return;
+        }
+        currentEmail = email;
+        loadVerifications(email);
+    }
+
+    async function loadVerifications(email) {
+        const container = document.getElementById('verificationContainer');
+        container.innerHTML = '<div class="loading"><div class="loading-spinner"></div> 加载中...</div>';
+
+        try {
+            // 对邮箱地址进行URL编码
+            const encodedEmail = encodeURIComponent(email);
+            console.log('正在获取验证码:', email, '编码后:', encodedEmail);
+
+            const response = await fetch(`/api/emails/${encodedEmail}/verifications`);
+            console.log('API响应状态:', response.status);
+
+            const data = await response.json();
+            console.log('获取到的数据:', data);
+
+            if (data.length === 0) {
+                container.innerHTML = '<div class="empty-state"><div class="empty-state-icon">📭</div><div class="empty-state-title">暂无验证码记录</div></div>';
+                return;
+            }
+
+            let html = '';
+            data.forEach(item => {
+                html += `
+                    <div class="card" style="margin-bottom: 1rem;">
+                        <div class="card-header">
+                            <div class="card-title">${item.email}</div>
+                            <div style="color: var(--gray-600);">共 ${item.verifications.length} 个验证码</div>
+                        </div>
+                        <div class="card-content">
+                `;
+                item.verifications.forEach(v => {
+                    html += `
+                        <div style="display: flex; justify-content: space-between; align-items: center; padding: 1rem; border-bottom: 1px solid var(--gray-200);">
+                            <div style="flex: 1;">
+                                <div style="font-size: 1.5rem; font-weight: bold; color: var(--primary-color); margin-bottom: 0.5rem;">${v.code}</div>
+                                <div style="color: var(--gray-700); margin-bottom: 0.25rem;">📧 ${v.subject || '无标题'}</div>
+                                <div style="color: var(--gray-600); font-size: 0.9rem;">👤 ${v.sender || '未知发件人'}</div>
+                                <div style="color: var(--gray-500); font-size: 0.8rem;">🕐 ${new Date(v.received_at).toLocaleString()}</div>
+                            </div>
+                            <div style="display: flex; gap: 0.5rem;">
+                                <button class="btn btn-secondary" onclick="copyCode('${v.code}')">📋 复制</button>
+                                <button class="btn" onclick="markAsRead('${email}', ${v.id})">✓ 已读</button>
+                            </div>
+                        </div>
+                    `;
+                });
+                html += `
+                        </div>
+                    </div>
+                `;
+            });
+
+            container.innerHTML = html;
+        } catch (error) {
+            container.innerHTML = '<div class="empty-state"><div class="empty-state-icon">❌</div><div class="empty-state-title">加载失败，请重试</div></div>';
+            console.error('加载验证码失败:', error);
+        }
+    }
+
+    async function loadAllVerifications() {
+        const container = document.getElementById('verificationContainer');
+        container.innerHTML = '<div class="loading"><div class="loading-spinner"></div> 加载全部验证码...</div>';
+
+        try {
+            const response = await fetch('/api/verifications');
+            const data = await response.json();
+
+            if (data.length === 0) {
+                container.innerHTML = '<div class="empty-state"><div class="empty-state-icon">📭</div><div class="empty-state-title">暂无验证码记录</div></div>';
+                return;
+            }
+
+            let html = '';
+            data.forEach(item => {
+                html += `
+                    <div class="card" style="margin-bottom: 1rem;">
+                        <div class="card-header">
+                            <div class="card-title">${item.email}</div>
+                            <div style="color: var(--gray-600);">共 ${item.verifications.length} 个验证码</div>
+                        </div>
+                        <div class="card-content">
+                `;
+                item.verifications.forEach(v => {
+                    html += `
+                        <div style="display: flex; justify-content: space-between; align-items: center; padding: 1rem; border-bottom: 1px solid var(--gray-200);">
+                            <div style="flex: 1;">
+                                <div style="font-size: 1.5rem; font-weight: bold; color: var(--primary-color); margin-bottom: 0.5rem;">${v.code}</div>
+                                <div style="color: var(--gray-700); margin-bottom: 0.25rem;">📧 ${v.subject || '无标题'}</div>
+                                <div style="color: var(--gray-600); font-size: 0.9rem;">👤 ${v.sender || '未知发件人'}</div>
+                                <div style="color: var(--gray-500); font-size: 0.8rem;">🕐 ${new Date(v.received_at).toLocaleString()}</div>
+                            </div>
+                            <div style="display: flex; gap: 0.5rem;">
+                                <button class="btn btn-secondary" onclick="copyCode('${v.code}')">📋 复制</button>
+                                <button class="btn" onclick="markAsRead('${item.email}', ${v.id})">✓ 已读</button>
+                            </div>
+                        </div>
+                    `;
+                });
+                html += `
+                        </div>
+                    </div>
+                `;
+            });
+
+            container.innerHTML = html;
+        } catch (error) {
+            container.innerHTML = '<div class="empty-state"><div class="empty-state-icon">❌</div><div class="empty-state-title">加载失败，请重试</div></div>';
+            console.error('加载全部验证码失败:', error);
+        }
+    }
+
+    function refreshVerifications() {
+        if (currentEmail) {
+            loadVerifications(currentEmail);
+        } else {
+            loadAllVerifications();
+        }
+    }
+
+    function copyCode(code) {
+        navigator.clipboard.writeText(code).then(() => {
+            alert('验证码已复制到剪贴板！');
+        }).catch(() => {
+            // 兼容性处理
+            const textArea = document.createElement('textarea');
+            textArea.value = code;
+            document.body.appendChild(textArea);
+            textArea.select();
+            document.execCommand('copy');
+            document.body.removeChild(textArea);
+            alert('验证码已复制到剪贴板！');
+        });
+    }
+
+    async function markAsRead(email, verificationId) {
+        try {
+            // 对邮箱地址进行URL编码
+            const encodedEmail = encodeURIComponent(email);
+            console.log('正在标记已读:', email, '编码后:', encodedEmail);
+
+            const response = await fetch(`/api/emails/${encodedEmail}/verifications/${verificationId}/read`, {
+                method: 'PUT'
+            });
+            console.log('标记已读响应状态:', response.status);
+
+            if (response.ok) {
+                alert('已标记为已读');
+                refreshVerifications();
+            } else {
+                alert('标记失败，请重试');
+            }
+        } catch (error) {
+            alert('标记失败，请重试');
+            console.error('标记已读失败:', error);
+        }
+    }
+
+    // 回车键搜索
+    document.getElementById('searchEmail').addEventListener('keypress', function(e) {
+        if (e.key === 'Enter') {
+            searchVerifications();
+        }
+    });
+</script>
+{% endblock %}

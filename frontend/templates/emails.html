@@ -1,0 +1,188 @@
+{% extends "base.html" %}
+
+{% block title %}邮箱管理 - Mailu验证码平台{% endblock %}
+
+{% set current_page = 'emails' %}
+
+{% block content %}
+    <!-- 创建邮箱区域 -->
+    <section class="card fade-in">
+        <div class="card-header">
+            <h3 class="card-title">➕ 创建新邮箱</h3>
+        </div>
+        <div class="card-content">
+            <form onsubmit="createEmail(); return false;" style="display: flex; gap: 1rem; flex-wrap: wrap; align-items: center;">
+                <div style="min-width: 150px;">
+                    <select id="domainSelect" class="form-input">
+                        <option value="zhangxuemin.work">zhangxuemin.work</option>
+                        <option value="example.com">example.com</option>
+                    </select>
+                </div>
+                <button type="submit" class="btn btn-success">➕ 创建邮箱</button>
+            </form>
+            <div id="createResult" style="margin-top: 1rem;"></div>
+        </div>
+    </section>
+
+    <!-- 邮箱列表 -->
+    <section class="card fade-in">
+        <div class="card-header">
+            <h3 class="card-title">📬 邮箱列表</h3>
+        </div>
+        <div class="card-content">
+            <div id="emailContainer">
+                <div class="loading">
+                    <div class="loading-spinner"></div>
+                    加载中...
+                </div>
+            </div>
+        </div>
+    </section>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+    // 页面加载时获取邮箱列表
+    document.addEventListener('DOMContentLoaded', loadEmails);
+
+    async function createEmail() {
+        const domain = document.getElementById('domainSelect').value;
+        const resultDiv = document.getElementById('createResult');
+
+        resultDiv.innerHTML = '<div class="loading" style="padding: 1rem;"><div class="loading-spinner"></div> 创建中...</div>';
+
+        try {
+            const response = await fetch('/api/emails', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ domain: domain })
+            });
+
+            const data = await response.json();
+            if (response.ok) {
+                resultDiv.innerHTML = `
+                    <div style="padding: 1rem; background: rgba(72, 187, 120, 0.1); border-radius: 0.5rem; border-left: 4px solid var(--success-color);">
+                        <div style="color: var(--success-color); font-weight: bold; margin-bottom: 0.5rem;">✅ 邮箱创建成功</div>
+                        <div style="font-size: 1.1rem; font-weight: bold; color: var(--gray-800); margin-bottom: 0.25rem;">${data.email}</div>
+                        <div style="color: var(--gray-600);">密码: <strong>${data.password}</strong></div>
+                        <div style="color: var(--gray-600);">过期时间: ${data.expires_at}</div>
+                    </div>
+                `;
+                loadEmails(); // 刷新邮箱列表
+            } else {
+                resultDiv.innerHTML = `
+                    <div style="padding: 1rem; background: rgba(245, 101, 101, 0.1); border-radius: 0.5rem; border-left: 4px solid var(--error-color);">
+                        <div style="color: var(--error-color); font-weight: bold;">❌ 创建失败</div>
+                        <div style="color: var(--gray-600); margin-top: 0.25rem;">${data.detail || '未知错误'}</div>
+                    </div>
+                `;
+            }
+        } catch (error) {
+            resultDiv.innerHTML = `
+                <div style="padding: 1rem; background: rgba(245, 101, 101, 0.1); border-radius: 0.5rem; border-left: 4px solid var(--error-color);">
+                    <div style="color: var(--error-color); font-weight: bold;">❌ 创建失败</div>
+                    <div style="color: var(--gray-600); margin-top: 0.25rem;">请重试</div>
+                </div>
+            `;
+            console.error('创建邮箱失败:', error);
+        }
+    }
+
+    async function loadEmails() {
+        const container = document.getElementById('emailContainer');
+        container.innerHTML = '<div class="loading"><div class="loading-spinner"></div> 加载中...</div>';
+
+        try {
+            const response = await fetch('/api/emails');
+            const emails = await response.json();
+
+            if (emails.length === 0) {
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-state-icon">📭</div>
+                        <div class="empty-state-title">暂无邮箱</div>
+                        <div class="empty-state-description">点击上方创建您的第一个临时邮箱</div>
+                    </div>
+                `;
+                return;
+            }
+
+            let html = '';
+            emails.forEach(email => {
+                const statusClass = email.time_remaining === '已过期' ? 'status-error' : 'status-success';
+                const statusText = email.time_remaining === '已过期' ? '已过期' : '活跃';
+
+                html += `
+                    <div class="card" style="margin-bottom: 1rem;">
+                        <div class="card-content" style="padding: 1.5rem;">
+                            <div style="display: flex; justify-content: space-between; align-items: center;">
+                                <div style="flex: 1;">
+                                    <div style="font-size: 1.25rem; font-weight: bold; color: var(--gray-800); margin-bottom: 0.5rem;">
+                                        ${email.email}
+                                    </div>
+                                    <div style="display: flex; gap: 1rem; flex-wrap: wrap; color: var(--gray-600); font-size: 0.9rem;">
+                                        <div>📅 创建: ${email.created_at}</div>
+                                        <div>⏰ 过期: ${email.expires_at}</div>
+                                        <div>⏳ 剩余: ${email.time_remaining}</div>
+                                    </div>
+                                </div>
+                                <div style="display: flex; gap: 0.5rem; align-items: center;">
+                                    <div class="status-badge ${statusClass}">${statusText}</div>
+                                    <button class="btn btn-secondary" onclick="viewVerifications('${email.email}')">📧 查看验证码</button>
+                                    <button class="btn btn-danger" onclick="deleteEmail('${email.email}')">🗑️ 删除</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
+
+            container.innerHTML = html;
+        } catch (error) {
+            container.innerHTML = `
+                <div class="empty-state">
+                    <div class="empty-state-icon">❌</div>
+                    <div class="empty-state-title">加载失败，请重试</div>
+                </div>
+            `;
+            console.error('加载邮箱列表失败:', error);
+        }
+    }
+
+    async function viewVerifications(email) {
+        window.location.href = `/verification?email=${encodeURIComponent(email)}`;
+    }
+
+    async function deleteEmail(email) {
+        if (!confirm(`确定要删除邮箱 ${email} 吗？此操作不可撤销！`)) {
+            return;
+        }
+
+        try {
+            const response = await fetch(`/api/emails/${email}`, {
+                method: 'DELETE'
+            });
+
+            if (response.ok) {
+                // 显示成功消息
+                const resultDiv = document.getElementById('createResult');
+                resultDiv.innerHTML = `
+                    <div style="padding: 1rem; background: rgba(72, 187, 120, 0.1); border-radius: 0.5rem; border-left: 4px solid var(--success-color);">
+                        <div style="color: var(--success-color); font-weight: bold;">✅ 邮箱删除成功</div>
+                        <div style="color: var(--gray-600); margin-top: 0.25rem;">${email} 已被删除</div>
+                    </div>
+                `;
+                loadEmails(); // 刷新列表
+            } else {
+                const error = await response.json();
+                alert(`删除失败：${error.detail || '未知错误'}`);
+            }
+        } catch (error) {
+            alert('删除失败，请重试');
+            console.error('删除邮箱失败:', error);
+        }
+    }
+</script>
+{% endblock %}

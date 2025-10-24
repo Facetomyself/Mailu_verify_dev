@@ -1,0 +1,266 @@
+{% extends "base.html" %}
+
+{% block title %}系统统计 - Mailu验证码平台{% endblock %}
+
+{% set current_page = 'stats' %}
+
+{% block content %}
+    <!-- 页面标题区域 -->
+    <section class="card fade-in">
+        <div class="card-header">
+            <h2 class="card-title">📊 系统统计仪表板</h2>
+            <p style="margin: 0; color: var(--gray-600); font-size: 1rem;">
+                实时监控平台运行状态和数据统计
+            </p>
+        </div>
+        <div class="card-content" style="text-align: center;">
+            <button class="btn btn-primary" onclick="refreshStats()" id="refreshBtn">
+                <span id="refreshIcon">🔄</span>
+                <span id="refreshText">刷新数据</span>
+            </button>
+        </div>
+    </section>
+
+    <!-- 统计概览 -->
+    <section class="card fade-in">
+        <div class="card-header">
+            <h3 class="card-title">📈 统计概览</h3>
+        </div>
+        <div class="card-content">
+            <div class="grid grid-4" id="statsOverview">
+                <div class="card" style="padding: 2rem; text-align: center;">
+                    <div style="font-size: 3rem; margin-bottom: 1rem;">📬</div>
+                    <div style="font-size: 2.5rem; font-weight: bold; color: var(--primary-color); margin-bottom: 0.5rem;" id="totalEmails">--</div>
+                    <div style="font-size: 1.2rem; color: var(--gray-600); margin-bottom: 1rem;">总邮箱数</div>
+                    <div class="status-badge status-success" id="emailStatus">正常</div>
+                    <div style="font-size: 0.9rem; color: var(--gray-500); margin-top: 0.5rem;">系统中注册的所有邮箱</div>
+                </div>
+                <div class="card" style="padding: 2rem; text-align: center;">
+                    <div style="font-size: 3rem; margin-bottom: 1rem;">✅</div>
+                    <div style="font-size: 2.5rem; font-weight: bold; color: var(--success-color); margin-bottom: 0.5rem;" id="activeEmails">--</div>
+                    <div style="font-size: 1.2rem; color: var(--gray-600); margin-bottom: 1rem;">活跃邮箱</div>
+                    <div class="status-badge status-success" id="activeStatus">正常</div>
+                    <div style="font-size: 0.9rem; color: var(--gray-500); margin-top: 0.5rem;">未过期且可用的邮箱</div>
+                </div>
+                <div class="card" style="padding: 2rem; text-align: center;">
+                    <div style="font-size: 3rem; margin-bottom: 1rem;">🔢</div>
+                    <div style="font-size: 2.5rem; font-weight: bold; color: var(--warning-color); margin-bottom: 0.5rem;" id="totalCodes">--</div>
+                    <div style="font-size: 1.2rem; color: var(--gray-600); margin-bottom: 1rem;">验证码总数</div>
+                    <div class="status-badge status-success" id="codeStatus">正常</div>
+                    <div style="font-size: 0.9rem; color: var(--gray-500); margin-top: 0.5rem;">已提取的验证码数量</div>
+                </div>
+                <div class="card" style="padding: 2rem; text-align: center;">
+                    <div style="font-size: 3rem; margin-bottom: 1rem;">🖥️</div>
+                    <div style="font-size: 2.5rem; font-weight: bold; color: var(--info-color); margin-bottom: 0.5rem;" id="serverStatus">--</div>
+                    <div style="font-size: 1.2rem; color: var(--gray-600); margin-bottom: 1rem;">服务器状态</div>
+                    <div class="status-badge status-success" id="serverStatusBadge">正常</div>
+                    <div style="font-size: 0.9rem; color: var(--gray-500); margin-top: 0.5rem;">系统运行状态监控</div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- 详细统计 -->
+    <div class="grid grid-2">
+        <!-- 邮箱统计 -->
+        <section class="card fade-in">
+            <div class="card-header">
+                <h3 class="card-title">📧 邮箱统计</h3>
+            </div>
+            <div class="card-content">
+                <div style="margin-bottom: 2rem;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                        <div>
+                            <div style="font-size: 1.1rem; font-weight: 500; color: var(--gray-700);">活跃邮箱比例</div>
+                            <div style="font-size: 0.9rem; color: var(--gray-500);">活跃邮箱占总邮箱的比例</div>
+                        </div>
+                        <div style="font-size: 1.5rem; font-weight: bold; color: var(--primary-color);" id="activeRatio">--%</div>
+                    </div>
+                    <div class="progress-bar">
+                        <div class="progress-fill" id="activeRatioBar" style="width: 0%;"></div>
+                    </div>
+                </div>
+
+                <div style="display: flex; justify-content: space-between; align-items: center; padding: 1rem; background: rgba(102, 126, 234, 0.05); border-radius: 0.5rem; border-left: 4px solid var(--primary-color);">
+                    <div>
+                        <div style="font-size: 1.1rem; font-weight: 500; color: var(--gray-700);">平均验证码/邮箱</div>
+                        <div style="font-size: 0.9rem; color: var(--gray-500);">每个邮箱平均收到的验证码数量</div>
+                    </div>
+                    <div style="font-size: 1.5rem; font-weight: bold; color: var(--primary-color);" id="codesPerEmail">--</div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 系统同步 -->
+        <section class="card fade-in">
+            <div class="card-header">
+                <h3 class="card-title">🔄 系统同步</h3>
+            </div>
+            <div class="card-content">
+                <div style="display: flex; justify-content: space-between; align-items: center; padding: 1rem; background: rgba(102, 126, 234, 0.05); border-radius: 0.5rem; border-left: 4px solid var(--primary-color); margin-bottom: 1rem;">
+                    <div>
+                        <div style="font-size: 1.1rem; font-weight: 500; color: var(--gray-700);">Mailu用户数</div>
+                        <div style="font-size: 0.9rem; color: var(--gray-500);">外部Mailu服务器的用户数量</div>
+                    </div>
+                    <div style="font-size: 1.5rem; font-weight: bold; color: var(--primary-color);" id="mailuUsers">--</div>
+                </div>
+
+                <div style="display: flex; justify-content: space-between; align-items: center; padding: 1rem; background: rgba(102, 126, 234, 0.05); border-radius: 0.5rem; border-left: 4px solid var(--primary-color);">
+                    <div>
+                        <div style="font-size: 1.1rem; font-weight: 500; color: var(--gray-700);">同步状态</div>
+                        <div style="font-size: 0.9rem; color: var(--gray-500);">与Mailu服务器的数据同步状态</div>
+                    </div>
+                    <div style="font-size: 1.5rem; font-weight: bold; color: var(--primary-color);" id="syncStatus">--</div>
+                </div>
+            </div>
+        </section>
+    </div>
+
+    <!-- 数据趋势图 -->
+    <section class="card fade-in">
+        <div class="card-header">
+            <h3 class="card-title">📈 数据趋势图</h3>
+        </div>
+        <div class="card-content">
+            <div style="height: 300px; background: linear-gradient(45deg, rgba(102, 126, 234, 0.1), rgba(118, 75, 162, 0.1)); border-radius: 0.5rem; display: flex; align-items: center; justify-content: center; color: var(--gray-500); border: 2px dashed rgba(102, 126, 234, 0.3);">
+                📊 图表功能开发中...
+                <br>
+                <small>未来版本将提供详细的数据可视化图表</small>
+            </div>
+        </div>
+    </section>
+
+    <!-- 最后更新时间 -->
+    <div style="text-align: center; margin-top: 2rem; color: var(--gray-500);" id="lastUpdated">
+        最后更新: --
+    </div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+    let isRefreshing = false;
+
+    // 页面加载时获取统计信息
+    document.addEventListener('DOMContentLoaded', function() {
+        loadStats();
+        // 每60秒自动刷新统计信息
+        setInterval(loadStats, 60000);
+    });
+
+    async function loadStats() {
+        if (isRefreshing) return;
+
+        try {
+            const response = await fetch('/api/stats');
+            const data = await response.json();
+
+            if (response.ok) {
+                updateStats(data);
+                updateLastUpdated();
+            }
+        } catch (error) {
+            console.error('获取统计信息失败:', error);
+        }
+    }
+
+    function updateStats(data) {
+        // 更新基础统计
+        document.getElementById('totalEmails').textContent = data.total_emails || 0;
+        document.getElementById('activeEmails').textContent = data.active_emails || 0;
+        document.getElementById('totalCodes').textContent = data.total_codes || 0;
+
+        // 更新服务器状态
+        const serverStatus = data.server_status === '正常' ? '✅' : '❌';
+        document.getElementById('serverStatus').textContent = serverStatus;
+
+        // 更新状态标签样式
+        updateStatusBadge('emailStatus', (data.total_emails || 0) > 0);
+        updateStatusBadge('activeStatus', (data.active_emails || 0) > 0);
+        updateStatusBadge('codeStatus', (data.total_codes || 0) >= 0);
+        updateStatusBadge('serverStatusBadge', data.server_status === '正常');
+
+        // 更新详细统计
+        updateDetailedStats(data);
+    }
+
+    function updateDetailedStats(data) {
+        const totalEmails = data.total_emails || 0;
+        const activeEmails = data.active_emails || 0;
+        const totalCodes = data.total_codes || 0;
+
+        // 活跃邮箱比例
+        const activeRatio = totalEmails > 0 ? Math.round((activeEmails / totalEmails) * 100) : 0;
+        document.getElementById('activeRatio').textContent = `${activeRatio}%`;
+
+        // 更新进度条
+        const progressBar = document.getElementById('activeRatioBar');
+        progressBar.style.width = `${activeRatio}%`;
+
+        // 平均验证码/邮箱
+        const codesPerEmail = totalEmails > 0 ? (totalCodes / totalEmails).toFixed(1) : '0.0';
+        document.getElementById('codesPerEmail').textContent = codesPerEmail;
+
+        // 同步信息
+        if (data.last_sync) {
+            document.getElementById('mailuUsers').textContent = data.last_sync.mailu_users || 0;
+            document.getElementById('syncStatus').textContent = data.last_sync.sync_status === 'success' ? '✅ 成功' : '❌ 失败';
+        }
+    }
+
+    function updateStatusBadge(elementId, isHealthy) {
+        const badge = document.getElementById(elementId);
+        if (isHealthy) {
+            badge.className = 'status-badge status-success';
+            badge.textContent = '正常';
+        } else {
+            badge.className = 'status-badge status-warning';
+            badge.textContent = '无数据';
+        }
+    }
+
+    function updateLastUpdated() {
+        const now = new Date();
+        const timeString = now.toLocaleString('zh-CN');
+        document.getElementById('lastUpdated').textContent = `最后更新: ${timeString}`;
+    }
+
+    async function refreshStats() {
+        if (isRefreshing) return;
+
+        isRefreshing = true;
+        const btn = document.getElementById('refreshBtn');
+        const icon = document.getElementById('refreshIcon');
+        const text = document.getElementById('refreshText');
+
+        // 更新按钮状态
+        btn.classList.add('refreshing');
+        icon.textContent = '⏳';
+        text.textContent = '刷新中...';
+
+        try {
+            await loadStats();
+            // 短暂延迟显示成功状态
+            setTimeout(() => {
+                icon.textContent = '✅';
+                text.textContent = '刷新成功';
+                setTimeout(() => {
+                    icon.textContent = '🔄';
+                    text.textContent = '刷新数据';
+                }, 1500);
+            }, 500);
+        } catch (error) {
+            icon.textContent = '❌';
+            text.textContent = '刷新失败';
+            setTimeout(() => {
+                icon.textContent = '🔄';
+                text.textContent = '刷新数据';
+            }, 2000);
+        } finally {
+            setTimeout(() => {
+                btn.classList.remove('refreshing');
+                isRefreshing = false;
+            }, 500);
+        }
+    }
+</script>
+{% endblock %}

@@ -1,0 +1,528 @@
+{% extends "base.html" %}
+
+{% block title %}发送邮件 - Mailu验证码平台{% endblock %}
+
+{% set current_page = 'send' %}
+
+{% block content %}
+    <!-- 页面标题 -->
+    <section class="card fade-in">
+        <div class="card-header">
+            <h2 class="card-title">📤 发送邮件</h2>
+            <p class="card-description">使用临时邮箱发送邮件，支持纯文本和HTML格式</p>
+        </div>
+    </section>
+
+    <!-- 发送邮件表单 -->
+    <section class="card fade-in">
+        <div class="card-content">
+            <form id="sendEmailForm" onsubmit="sendEmail(event); return false;">
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label class="form-label">
+                            <span class="required">*</span> 发件人邮箱
+                        </label>
+                        <select id="fromEmail" class="form-input" required>
+                            <option value="">请选择发件人邮箱...</option>
+                        </select>
+                        <small class="form-hint">只能使用活跃的临时邮箱作为发件人</small>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">
+                            <span class="required">*</span> 收件人邮箱
+                        </label>
+                        <input type="email" id="toEmail" class="form-input" placeholder="收件人邮箱地址" required>
+                        <small class="form-hint">支持多个收件人，用逗号分隔</small>
+                    </div>
+
+                    <div class="form-group form-group-full">
+                        <label class="form-label">
+                            <span class="required">*</span> 邮件主题
+                        </label>
+                        <input type="text" id="emailSubject" class="form-input" placeholder="请输入邮件主题" required>
+                    </div>
+
+                    <div class="form-group form-group-full">
+                        <label class="form-label">
+                            <span class="required">*</span> 邮件内容
+                        </label>
+                        <textarea id="emailBody" class="form-input" rows="8" placeholder="请输入邮件正文内容" required style="resize: vertical; min-height: 150px;"></textarea>
+                        <small class="form-hint">支持纯文本内容，如需HTML格式请使用专门的HTML邮件发送工具</small>
+                    </div>
+                </div>
+
+                <!-- 高级选项 -->
+                <details class="form-advanced">
+                    <summary class="form-advanced-toggle">📋 高级选项</summary>
+                    <div class="form-advanced-content">
+                        <div class="form-grid">
+                            <div class="form-group">
+                                <label class="form-label">回复地址</label>
+                                <input type="email" id="replyTo" class="form-input" placeholder="可选的回复地址">
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">优先级</label>
+                                <select id="priority" class="form-input">
+                                    <option value="normal">普通</option>
+                                    <option value="low">低</option>
+                                    <option value="high">高</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                </details>
+
+                <!-- 发送按钮 -->
+                <div class="form-actions">
+                    <button type="button" class="btn btn-secondary" onclick="clearForm()">
+                        <span>🗑️</span> 清空表单
+                    </button>
+                    <button type="submit" class="btn btn-primary" id="sendBtn">
+                        <span id="sendIcon">📤</span>
+                        <span id="sendText">发送邮件</span>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </section>
+
+    <!-- 发送历史 -->
+    <section class="card fade-in">
+        <div class="card-header">
+            <h3 class="card-title">📋 最近发送记录</h3>
+        </div>
+        <div class="card-content">
+            <div id="sendHistory">
+                <div class="empty-state">
+                    <div class="empty-state-icon">📤</div>
+                    <div class="empty-state-title">暂无发送记录</div>
+                    <div class="empty-state-description">发送邮件后会在这里显示发送历史</div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- 发送状态提示 -->
+    <div id="sendStatus" class="status-notification" style="display: none;">
+        <div class="status-content">
+            <span id="statusIcon">⏳</span>
+            <span id="statusText">正在发送邮件...</span>
+        </div>
+    </div>
+
+    <!-- SMTP配置提示 -->
+    <div id="smtpConfigHint" class="card" style="display: none; margin-top: 2rem; border-left: 4px solid #ff9800;">
+        <div class="card-header">
+            <h3 class="card-title" style="color: #ff9800;">⚠️ SMTP配置提醒</h3>
+        </div>
+        <div class="card-content">
+            <p>如果发送邮件失败，请检查以下配置：</p>
+            <ul style="margin: 1rem 0; padding-left: 1.5rem;">
+                <li>确保SMTP_USERNAME和SMTP_PASSWORD在.env文件中正确配置</li>
+                <li>SMTP端口配置：<br>
+                    - 端口25：传统SMTP（无加密）<br>
+                    - 端口587：Submission端口（推荐，STARTTLS加密）<br>
+                    - 端口465：SMTPS端口（SSL/TLS加密）</li>
+                <li>发件人邮箱必须是有效的临时邮箱</li>
+                <li>可以运行 <code style="background: #f5f5f5; padding: 0.2rem 0.5rem; border-radius: 3px;">python test_smtp.py</code> 测试SMTP配置</li>
+            </ul>
+            <button onclick="hideSmtpHint()" style="background: #ff9800; color: white; border: none; padding: 0.5rem 1rem; border-radius: 0.5rem; cursor: pointer;">
+                知道了
+            </button>
+        </div>
+    </div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+    const SEND_HISTORY_KEY = 'mailu_send_history';
+    // 页面加载时初始化
+    document.addEventListener('DOMContentLoaded', function() {
+        console.log('页面加载完成，开始初始化...');
+        console.log('当前URL:', window.location.href);
+        console.log('协议:', window.location.protocol);
+        console.log('主机:', window.location.host);
+
+        loadAvailableEmails();
+        loadSendHistory();
+
+        // 添加一个简单的测试按钮
+        const testBtn = document.createElement('button');
+        testBtn.textContent = '测试API连接';
+        testBtn.style.cssText = 'position: fixed; bottom: 20px; right: 20px; background: #007bff; color: white; border: none; padding: 10px 15px; border-radius: 5px; cursor: pointer;';
+        testBtn.onclick = testApiConnection;
+        document.body.appendChild(testBtn);
+    });
+
+    // 测试API连接
+    async function testApiConnection() {
+        try {
+            console.log('测试API连接...');
+            const response = await fetch('/api/emails');
+            const data = await response.json();
+            console.log('API连接成功:', data);
+            alert('API连接成功！邮箱数量: ' + data.length);
+        } catch (error) {
+            console.error('API连接失败:', error);
+            alert('API连接失败: ' + error.message);
+        }
+    }
+
+    // 加载可用邮箱
+    async function loadAvailableEmails() {
+        try {
+            console.log('开始加载可用邮箱...');
+            const response = await fetch('/api/emails');
+            console.log('API响应状态:', response.status);
+            const emails = await response.json();
+            console.log('获取到的邮箱列表:', emails);
+
+            const select = document.getElementById('fromEmail');
+            select.innerHTML = '<option value="">请选择发件人邮箱...</option>';
+
+            if (emails.length === 0) {
+                select.innerHTML = '<option value="" disabled>暂无可用的邮箱，请先创建临时邮箱</option>';
+                showStatus('⚠️ 暂无可用的邮箱，请先在邮箱管理页面创建临时邮箱', 'warning');
+                return;
+            }
+
+            emails.forEach(email => {
+                if (email.time_remaining !== '已过期') {
+                    const option = document.createElement('option');
+                    option.value = email.email;
+                    option.textContent = `${email.email} (${email.time_remaining})`;
+                    select.appendChild(option);
+                }
+            });
+
+            if (select.options.length === 1) {
+                showStatus('⚠️ 没有活跃的邮箱可用，请先创建临时邮箱', 'warning');
+            }
+
+        } catch (error) {
+            console.error('加载可用邮箱失败:', error);
+            showStatus('❌ 加载邮箱列表失败', 'error');
+        }
+    }
+
+    // 发送邮件
+    async function sendEmail(event) {
+        event.preventDefault();
+
+        console.log('开始发送邮件...');
+
+        const sendBtn = document.getElementById('sendBtn');
+        const sendIcon = document.getElementById('sendIcon');
+        const sendText = document.getElementById('sendText');
+
+        if (!sendBtn || !sendIcon || !sendText) {
+            console.error('无法找到发送按钮元素');
+            showStatus('❌ 页面元素错误，请刷新页面重试', 'error');
+            return;
+        }
+
+        // 更新按钮状态
+        sendBtn.disabled = true;
+        sendIcon.textContent = '⏳';
+        sendText.textContent = '发送中...';
+
+        // 收集表单数据
+        const fromEmail = document.getElementById('fromEmail');
+        const toEmail = document.getElementById('toEmail');
+        const emailSubject = document.getElementById('emailSubject');
+        const emailBody = document.getElementById('emailBody');
+
+        if (!fromEmail || !toEmail || !emailSubject || !emailBody) {
+            console.error('无法找到表单元素');
+            showStatus('❌ 表单错误，请刷新页面重试', 'error');
+            return;
+        }
+
+        const formData = {
+            from_email: fromEmail.value,
+            to_email: toEmail.value,
+            subject: emailSubject.value,
+            body: emailBody.value
+        };
+
+        console.log('表单数据:', formData);
+
+        // 表单验证
+        if (!formData.from_email) {
+            showStatus('❌ 请选择发件人邮箱', 'error');
+            sendBtn.disabled = false;
+            sendIcon.textContent = '📤';
+            sendText.textContent = '发送邮件';
+            return;
+        }
+
+        if (!formData.to_email) {
+            showStatus('❌ 请输入收件人邮箱', 'error');
+            sendBtn.disabled = false;
+            sendIcon.textContent = '📤';
+            sendText.textContent = '发送邮件';
+            return;
+        }
+
+        if (!formData.subject) {
+            showStatus('❌ 请输入邮件主题', 'error');
+            sendBtn.disabled = false;
+            sendIcon.textContent = '📤';
+            sendText.textContent = '发送邮件';
+            return;
+        }
+
+        if (!formData.body) {
+            showStatus('❌ 请输入邮件内容', 'error');
+            sendBtn.disabled = false;
+            sendIcon.textContent = '📤';
+            sendText.textContent = '发送邮件';
+            return;
+        }
+
+        // 添加可选字段
+        const replyTo = document.getElementById('replyTo').value;
+        const priority = document.getElementById('priority').value;
+
+        if (replyTo) {
+            formData.reply_to = replyTo;
+        }
+
+        if (priority !== 'normal') {
+            formData.priority = priority;
+        }
+
+        try {
+            showStatus('📤 正在发送邮件...', 'info');
+
+            console.log('发送API请求到: /api/send-email');
+            console.log('请求数据:', JSON.stringify(formData, null, 2));
+
+            const response = await fetch('/api/send-email', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(formData)
+            });
+
+            console.log('API响应状态:', response.status);
+            console.log('API响应头:', [...response.headers.entries()]);
+
+            const result = await response.json();
+            console.log('API响应数据:', result);
+
+            if (response.ok) {
+                const recipientsText = Array.isArray(result.to) ? result.to.join(', ') : result.to;
+                showStatus(`✅ 邮件发送成功！\\n\\n📧 发件人: ${result.from}\\n👤 收件人: ${recipientsText}\\n📄 主题: ${result.subject}`, 'success');
+
+                // 清空表单
+                clearForm();
+
+                // 记录发送历史
+                saveSendHistory({
+                    sent_at: new Date().toISOString(),
+                    from: result.from,
+                    requested_from: result.result?.requested_from || result.from,
+                    to: Array.isArray(result.to) ? result.to : [result.to],
+                    subject: result.subject
+                });
+
+                // 刷新发送历史
+                loadSendHistory();
+
+            } else {
+                showStatus(`❌ 发送失败: ${result.detail || '未知错误'}`, 'error');
+                // 如果是SMTP相关错误，显示配置提示
+                if (result.detail && (result.detail.includes('SMTP') || result.detail.includes('认证') || result.detail.includes('连接'))) {
+                    showSmtpHint();
+                }
+            }
+
+        } catch (error) {
+            console.error('发送邮件失败:', error);
+            if (error.name === 'TypeError' && error.message.includes('fetch')) {
+                showStatus('❌ 网络请求失败，请检查网络连接', 'error');
+            } else {
+                showStatus('❌ 发送失败，请检查网络连接后重试', 'error');
+            }
+        } finally {
+            // 恢复按钮状态
+            sendBtn.disabled = false;
+            sendIcon.textContent = '📤';
+            sendText.textContent = '发送邮件';
+        }
+    }
+
+    // 清空表单
+    function clearForm() {
+        document.getElementById('sendEmailForm').reset();
+        hideStatus();
+    }
+
+    // 显示状态提示
+    function showStatus(message, type = 'info') {
+        const statusDiv = document.getElementById('sendStatus');
+        const statusIcon = document.getElementById('statusIcon');
+        const statusText = document.getElementById('statusText');
+
+        statusText.innerHTML = message.replace('\\n', '<br>');
+
+        // 设置图标和颜色
+        switch (type) {
+            case 'success':
+                statusIcon.textContent = '✅';
+                statusDiv.style.background = 'linear-gradient(45deg, var(--success-color), #4caf50)';
+                break;
+            case 'error':
+                statusIcon.textContent = '❌';
+                statusDiv.style.background = 'linear-gradient(45deg, var(--error-color), #f44336)';
+                break;
+            case 'warning':
+                statusIcon.textContent = '⚠️';
+                statusDiv.style.background = 'linear-gradient(45deg, var(--warning-color), #ff9800)';
+                break;
+            default:
+                statusIcon.textContent = 'ℹ️';
+                statusDiv.style.background = 'linear-gradient(45deg, var(--info-color), #2196f3)';
+        }
+
+        statusDiv.style.display = 'block';
+
+        // 自动隐藏成功和警告消息
+        if (type === 'success' || type === 'warning') {
+            setTimeout(() => {
+                hideStatus();
+            }, 5000);
+        }
+    }
+
+    // 隐藏状态提示
+    function hideStatus() {
+        document.getElementById('sendStatus').style.display = 'none';
+    }
+
+    // 显示SMTP配置提示
+    function showSmtpHint() {
+        document.getElementById('smtpConfigHint').style.display = 'block';
+    }
+
+    // 隐藏SMTP配置提示
+    function hideSmtpHint() {
+        document.getElementById('smtpConfigHint').style.display = 'none';
+    }
+
+    function loadLocalHistory() {
+        try {
+            const raw = localStorage.getItem(SEND_HISTORY_KEY);
+            if (!raw) {
+                return [];
+            }
+            const parsed = JSON.parse(raw);
+            return Array.isArray(parsed) ? parsed : [];
+        } catch (error) {
+            console.warn('读取发送历史失败:', error);
+            return [];
+        }
+    }
+
+    function persistLocalHistory(entries) {
+        try {
+            localStorage.setItem(SEND_HISTORY_KEY, JSON.stringify(entries.slice(0, 10)));
+        } catch (error) {
+            console.warn('保存发送历史失败:', error);
+        }
+    }
+
+    function renderSendHistory(entries) {
+        const container = document.getElementById('sendHistory');
+        if (!container) {
+            return;
+        }
+
+        if (!entries.length) {
+            container.innerHTML = `
+                <div class="empty-state">
+                    <div class="empty-state-icon">📤</div>
+                    <div class="empty-state-title">暂无发送记录</div>
+                    <div class="empty-state-description">发送邮件后会在这里显示发送历史</div>
+                </div>
+            `;
+            return;
+        }
+
+        const fragment = document.createDocumentFragment();
+
+        entries.slice(0, 5).forEach(entry => {
+            const item = document.createElement('div');
+            item.className = 'history-item';
+            item.style.cssText = 'padding: 0.75rem 0; border-bottom: 1px solid rgba(0,0,0,0.05);';
+
+            const requestedInfo = entry.requested_from && entry.requested_from !== entry.from
+                ? `（请求: ${entry.requested_from}）`
+                : '';
+
+            item.innerHTML = `
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <div>
+                        <div style="font-weight: 600;">${entry.subject || '无主题'}</div>
+                        <div style="font-size: 0.875rem; color: var(--text-muted-color); margin-top: 0.25rem;">
+                            <div>发件人: ${entry.from} ${requestedInfo}</div>
+                            <div>收件人: ${entry.to.join(', ')}</div>
+                        </div>
+                    </div>
+                    <div style="font-size: 0.75rem; color: var(--text-muted-color); white-space: nowrap;">
+                        ${AppUtils.formatRelativeTime(entry.sent_at)}
+                    </div>
+                </div>
+            `;
+
+            fragment.appendChild(item);
+        });
+
+        container.innerHTML = '';
+        container.appendChild(fragment);
+    }
+
+    function saveSendHistory(record) {
+        const history = loadLocalHistory();
+        history.unshift(record);
+        persistLocalHistory(history);
+        renderSendHistory(history);
+    }
+
+    function loadSendHistory() {
+        const history = loadLocalHistory();
+        renderSendHistory(history);
+    }
+
+    // 键盘快捷键
+    document.addEventListener('keydown', function(e) {
+        // Ctrl/Cmd + Enter 发送邮件
+        if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+            e.preventDefault();
+            document.getElementById('sendEmailForm').dispatchEvent(new Event('submit'));
+        }
+
+        // ESC 隐藏状态提示
+        if (e.key === 'Escape') {
+            hideStatus();
+        }
+    });
+
+    // 表单验证增强
+    document.getElementById('toEmail').addEventListener('input', function(e) {
+        const emails = e.target.value.split(',').map(email => email.trim());
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+        for (const email of emails) {
+            if (email && !emailRegex.test(email)) {
+                e.target.setCustomValidity('请输入有效的邮箱地址，多个地址用逗号分隔');
+                return;
+            }
+        }
+        e.target.setCustomValidity('');
+    });
+</script>
+{% endblock %}

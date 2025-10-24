@@ -1,0 +1,8 @@
+# env file
+.env
+
+# python cache
+__pycache__/
+
+# agents md file
+AGENTS.md

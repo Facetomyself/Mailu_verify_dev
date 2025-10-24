@@ -1,0 +1,154 @@
+{% extends "base.html" %}
+
+{% block title %}仪表板 - Mailu验证码平台{% endblock %}
+
+{% set current_page = 'dashboard' %}
+
+{% block content %}
+    <!-- 欢迎区域 -->
+    <section class="card fade-in">
+        <div class="card-content" style="text-align: center; padding: 3rem;">
+            <h2 style="font-size: 2.5rem; margin-bottom: 1rem; background: linear-gradient(45deg, var(--primary-color), var(--secondary-color)); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">
+                欢迎使用验证码接收平台
+            </h2>
+            <p style="font-size: 1.2rem; color: var(--gray-600); margin-bottom: 2rem;">
+                高效、安全、便捷的临时邮箱验证码管理解决方案
+            </p>
+            <div style="display: inline-block; padding: 1rem 2rem; background: rgba(102, 126, 234, 0.1); border-radius: 2rem; border: 2px solid var(--primary-color);">
+                <span style="font-size: 1.5rem; color: var(--primary-color); font-weight: bold;">
+                    🚀 系统运行正常
+                </span>
+            </div>
+        </div>
+    </section>
+
+    <!-- 快捷操作 -->
+    <section class="card fade-in">
+        <div class="card-header">
+            <h3 class="card-title">⚡ 快捷操作</h3>
+        </div>
+        <div class="card-content">
+            <div class="grid grid-4">
+                <a href="/emails" class="card" style="padding: 2rem; text-align: center; text-decoration: none; color: inherit;">
+                    <div style="font-size: 3rem; margin-bottom: 1rem;">📬</div>
+                    <div style="font-size: 1.25rem; font-weight: bold; margin-bottom: 0.5rem;">邮箱管理</div>
+                    <div style="color: var(--gray-600);">创建、查看和管理临时邮箱</div>
+                </a>
+                <a href="/verification" class="card" style="padding: 2rem; text-align: center; text-decoration: none; color: inherit;">
+                    <div style="font-size: 3rem; margin-bottom: 1rem;">🔍</div>
+                    <div style="font-size: 1.25rem; font-weight: bold; margin-bottom: 0.5rem;">验证码查看</div>
+                    <div style="color: var(--gray-600);">查看所有邮箱的验证码记录</div>
+                </a>
+                <a href="/stats" class="card" style="padding: 2rem; text-align: center; text-decoration: none; color: inherit;">
+                    <div style="font-size: 3rem; margin-bottom: 1rem;">📊</div>
+                    <div style="font-size: 1.25rem; font-weight: bold; margin-bottom: 0.5rem;">系统统计</div>
+                    <div style="color: var(--gray-600);">查看平台运行状态和统计信息</div>
+                </a>
+                <a href="/send" class="card" style="padding: 2rem; text-align: center; text-decoration: none; color: inherit;">
+                    <div style="font-size: 3rem; margin-bottom: 1rem;">📤</div>
+                    <div style="font-size: 1.25rem; font-weight: bold; margin-bottom: 0.5rem;">发送邮件</div>
+                    <div style="color: var(--gray-600);">使用临时邮箱发送邮件</div>
+                </a>
+            </div>
+        </div>
+    </section>
+
+    <!-- 系统概览 -->
+    <section class="card fade-in">
+        <div class="card-header">
+            <h3 class="card-title">📈 系统概览</h3>
+        </div>
+        <div class="card-content">
+            <div class="grid grid-4">
+                <div class="card" style="padding: 1.5rem; text-align: center;">
+                    <div style="font-size: 2.5rem; font-weight: bold; color: var(--primary-color); margin-bottom: 0.5rem;" id="totalEmails">--</div>
+                    <div style="font-size: 1.1rem; color: var(--gray-600);">总邮箱数</div>
+                    <div class="status-badge status-success" id="emailStatus">正常</div>
+                </div>
+                <div class="card" style="padding: 1.5rem; text-align: center;">
+                    <div style="font-size: 2.5rem; font-weight: bold; color: var(--success-color); margin-bottom: 0.5rem;" id="activeEmails">--</div>
+                    <div style="font-size: 1.1rem; color: var(--gray-600);">活跃邮箱</div>
+                    <div class="status-badge status-success" id="activeStatus">正常</div>
+                </div>
+                <div class="card" style="padding: 1.5rem; text-align: center;">
+                    <div style="font-size: 2.5rem; font-weight: bold; color: var(--warning-color); margin-bottom: 0.5rem;" id="totalCodes">--</div>
+                    <div style="font-size: 1.1rem; color: var(--gray-600);">验证码总数</div>
+                    <div class="status-badge status-success" id="codeStatus">正常</div>
+                </div>
+                <div class="card" style="padding: 1.5rem; text-align: center;">
+                    <div style="font-size: 2.5rem; font-weight: bold; color: var(--info-color); margin-bottom: 0.5rem;" id="serverStatus">--</div>
+                    <div style="font-size: 1.1rem; color: var(--gray-600);">服务器状态</div>
+                    <div class="status-badge status-success" id="serverStatusBadge">正常</div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- 最近活动 -->
+    <section class="card fade-in">
+        <div class="card-header">
+            <h3 class="card-title">🕐 最近活动</h3>
+        </div>
+        <div class="card-content">
+            <div class="empty-state">
+                <div class="empty-state-icon">📋</div>
+                <div class="empty-state-title">暂无活动记录</div>
+                <div class="empty-state-description">系统运行正常，所有功能工作正常</div>
+            </div>
+        </div>
+    </section>
+
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+    // 页面加载时获取统计信息
+    document.addEventListener('DOMContentLoaded', function() {
+        loadStats();
+        // 每60秒自动刷新统计信息
+        setInterval(loadStats, 60000);
+    });
+
+    async function loadStats() {
+        try {
+            const response = await fetch('/api/stats');
+            const data = await response.json();
+
+            if (response.ok) {
+                updateStats(data);
+            }
+        } catch (error) {
+            console.error('获取统计信息失败:', error);
+        }
+    }
+
+    function updateStats(data) {
+        // 更新基础统计
+        document.getElementById('totalEmails').textContent = data.total_emails || 0;
+        document.getElementById('activeEmails').textContent = data.active_emails || 0;
+        document.getElementById('totalCodes').textContent = data.total_codes || 0;
+
+        // 更新服务器状态
+        const serverStatus = data.server_status === '正常' ? '✅' : '❌';
+        document.getElementById('serverStatus').textContent = serverStatus;
+
+        // 更新状态标签样式
+        updateStatusBadge('emailStatus', (data.total_emails || 0) > 0);
+        updateStatusBadge('activeStatus', (data.active_emails || 0) > 0);
+        updateStatusBadge('codeStatus', (data.total_codes || 0) >= 0);
+        updateStatusBadge('serverStatusBadge', data.server_status === '正常');
+    }
+
+    function updateStatusBadge(elementId, isHealthy) {
+        const badge = document.getElementById(elementId);
+        if (isHealthy) {
+            badge.className = 'status-badge status-success';
+            badge.textContent = '正常';
+        } else {
+            badge.className = 'status-badge status-warning';
+            badge.textContent = '无数据';
+        }
+    }
+
+</script>
+{% endblock %}

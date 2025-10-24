@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Mailu验证码平台{% endblock %}</title>
+    <link rel="stylesheet" href="/frontend/static/css/main.css">
+    {% block extra_head %}{% endblock %}
+</head>
+<body>
+    <div class="container">
+        <!-- 头部导航 -->
+        <header class="header">
+            <h1 class="logo">📧 Mailu验证码平台</h1>
+            <nav class="nav-links">
+                <a href="/" class="nav-link{% if current_page == 'dashboard' %} active{% endif %}">
+                    🏠 仪表板
+                </a>
+                <a href="/verification" class="nav-link{% if current_page == 'verification' %} active{% endif %}">
+                    📧 验证码查看
+                </a>
+                <a href="/emails" class="nav-link{% if current_page == 'emails' %} active{% endif %}">
+                    📬 邮箱管理
+                </a>
+                <a href="/send" class="nav-link{% if current_page == 'send' %} active{% endif %}">
+                    📤 发送邮件
+                </a>
+                <a href="/stats" class="nav-link{% if current_page == 'stats' %} active{% endif %}">
+                    📊 系统统计
+                </a>
+            </nav>
+        </header>
+
+        <!-- 主要内容 -->
+        <main class="main-content">
+            {% block content %}{% endblock %}
+        </main>
+    </div>
+
+    <!-- 全局脚本 -->
+    <script src="/frontend/static/js/main.js"></script>
+    {% block extra_scripts %}{% endblock %}
+</body>
+</html>
