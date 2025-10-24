@@ -20,7 +20,7 @@ class EmailService:
 
     def __init__(self):
         # 从环境变量获取SMTP配置
-        self.smtp_server = os.getenv("SMTP_SERVER", "mail.zhangxuemin.work")
+        self.smtp_server = os.getenv("SMTP_SERVER", "smtp.example.com")
         self.smtp_port = int(os.getenv("SMTP_PORT", "465"))
         self.use_ssl = os.getenv("SMTP_USE_SSL", "true").lower() == "true"
         self.use_tls = os.getenv("SMTP_USE_TLS", "false").lower() == "true"

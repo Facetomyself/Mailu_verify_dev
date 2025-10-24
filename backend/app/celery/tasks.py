@@ -360,7 +360,7 @@ def check_imap_emails(email_addr: str, password: str) -> List[Dict]:
 
     try:
         # 获取IMAP配置
-        imap_server = os.getenv("IMAP_SERVER", "mail.zhangxuemin.work")
+        imap_server = os.getenv("IMAP_SERVER", "imap.example.com")
         imap_port = int(os.getenv("IMAP_PORT", "993"))
         use_ssl = os.getenv("IMAP_USE_SSL", "true").lower() == "true"
 
@@ -558,11 +558,16 @@ def sync_with_mailu(db):
             import requests
             import os
 
-            api_url = os.getenv("API_URL", "https://mail.zhangxuemin.work/api/v1/")
-            token = os.getenv("API_TOKEN", "f80dae1387106ff8995d6049e42934c3")
+            api_url = os.getenv("API_URL")
+            token = os.getenv("API_TOKEN")
+
+            if not api_url or not token:
+                raise ValueError("Mailu API配置缺失")
+
+            base_url = api_url if api_url.endswith('/') else f"{api_url}/"
             headers = {"Authorization": f"Bearer {token}"}
 
-            response = requests.get(f"{api_url}/user", headers=headers, timeout=30.0)
+            response = requests.get(f"{base_url}user", headers=headers, timeout=30.0)
             response.raise_for_status()
             mailu_users = response.json()
             mailu_emails = {user['email']: user for user in mailu_users}

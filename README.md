@@ -119,7 +119,7 @@ docker-compose ps
 | `REDIS_PASSWORD` | 空 | Redis 认证密码，如启用需同步更新 Celery 配置。 |
 | `CELERY_BROKER_URL` | `redis://redis:6379/1` | Celery 消息代理地址，默认使用 Redis。 |
 | `CELERY_RESULT_BACKEND` | `redis://redis:6379/2` | Celery 结果存储地址。 |
-| `SMTP_SERVER` | `mail.zhangxuemin.work` | SMTP 发件服务器地址。 |
+| `SMTP_SERVER` | `smtp.example.com` | SMTP 发件服务器地址。 |
 | `SMTP_PORT` | `465` | SMTP 端口。 |
 | `SMTP_USE_SSL` | `true` | 是否启用 SSL。 |
 | `SMTP_USE_TLS` | `false` | 是否启用 STARTTLS。 |

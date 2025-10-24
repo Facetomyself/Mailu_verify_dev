@@ -20,12 +20,12 @@ backend/app/services/
 
 ```bash
 # 邮件服务器配置
-SMTP_SERVER=mail.zhangxuemin.work
+SMTP_SERVER=smtp.example.com
 SMTP_PORT=465
 SMTP_USE_SSL=true
 SMTP_USE_TLS=false
-SMTP_USERNAME=wmhi0y8y@zhangxuemin.work
-SMTP_PASSWORD=Zxm971004
+SMTP_USERNAME=demo@example.com
+SMTP_PASSWORD=your_password
 ```
 
 ## 基本使用

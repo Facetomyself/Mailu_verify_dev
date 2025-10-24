@@ -323,7 +323,7 @@ async def send_email(request: SendEmailRequest):
 
                 # 检查域名是否在允许列表中
                 domain = request.from_email.split('@')[1]
-                allowed_domains = os.getenv("ALLOWED_DOMAINS", "zhangxuemin.work").split(',')
+                allowed_domains = os.getenv("ALLOWED_DOMAINS", "example.com").split(',')
                 if domain not in [d.strip() for d in allowed_domains]:
                     raise HTTPException(status_code=400, detail=f"域名 {domain} 不被允许")
 
@@ -403,11 +403,16 @@ async def get_system_stats():
                 import requests
                 import os
 
-                api_url = os.getenv("API_URL", "https://mail.zhangxuemin.work/api/v1/")
-                token = os.getenv("API_TOKEN", "f80dae1387106ff8995d6049e42934c3")
+                api_url = os.getenv("API_URL")
+                token = os.getenv("API_TOKEN")
+
+                if not api_url or not token:
+                    raise ValueError("Mailu API配置缺失")
+
+                base_url = api_url if api_url.endswith('/') else f"{api_url}/"
                 headers = {"Authorization": f"Bearer {token}"}
 
-                response = requests.get(f"{api_url}/user", headers=headers, timeout=30.0)
+                response = requests.get(f"{base_url}user", headers=headers, timeout=30.0)
                 response.raise_for_status()
                 mailu_users = response.json()
                 mailu_users_count = len(mailu_users)

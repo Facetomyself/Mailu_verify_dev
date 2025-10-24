@@ -14,8 +14,16 @@ class MailuClient:
     """Mailu API客户端"""
 
     def __init__(self):
-        self.base_url = os.getenv("API_URL", "https://mail.zhangxuemin.work/api/v1/")
-        self.token = os.getenv("API_TOKEN", "f80dae1387106ff8995d6049e42934c3")
+        api_url = os.getenv("API_URL")
+        token = os.getenv("API_TOKEN")
+
+        if not api_url:
+            raise ValueError("未配置API_URL环境变量")
+        if not token:
+            raise ValueError("未配置API_TOKEN环境变量")
+
+        self.base_url = api_url if api_url.endswith('/') else f"{api_url}/"
+        self.token = token
         self.headers = {
             "Authorization": f"Bearer {self.token}",
             "Content-Type": "application/json"
