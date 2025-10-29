@@ -14,8 +14,9 @@
             <form onsubmit="createEmail(); return false;" style="display: flex; gap: 1rem; flex-wrap: wrap; align-items: center;">
                 <div style="min-width: 150px;">
                     <select id="domainSelect" class="form-input">
-                        <option value="example.com">example.com</option>
-                        <option value="mailu.example">mailu.example</option>
+                        {% for domain in allowed_domains %}
+                        <option value="{{ domain }}" {% if loop.first %}selected{% endif %}>{{ domain }}</option>
+                        {% endfor %}
                     </select>
                 </div>
                 <button type="submit" class="btn btn-success">➕ 创建邮箱</button>

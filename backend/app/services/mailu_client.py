@@ -45,7 +45,13 @@ class MailuClient:
         try:
             response = await self.client.request(method, endpoint, **kwargs)
             response.raise_for_status()
-            return response.json()
+            if not response.content:
+                return {}
+            try:
+                return response.json()
+            except ValueError:
+                logger.warning(f"响应非JSON格式: {response.text[:200]}")
+                return {}
         except httpx.HTTPStatusError as e:
             logger.error(f"HTTP错误: {e.response.status_code} - {e.response.text}")
             raise

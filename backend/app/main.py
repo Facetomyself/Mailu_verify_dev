@@ -80,6 +80,25 @@ class StatsResponse(BaseModel):
     server_status: str
     last_sync: Optional[Dict] = None
 
+def parse_allowed_domains() -> List[str]:
+    """解析允许的域名列表"""
+    default_domain = os.getenv("DEFAULT_DOMAIN", "example.com").strip()
+    raw_value = os.getenv("ALLOWED_DOMAINS", "")
+    domains = [item.strip() for item in raw_value.split(",") if item.strip()]
+
+    if not domains and default_domain:
+        domains = [default_domain]
+
+    if default_domain and default_domain not in domains:
+        domains.insert(0, default_domain)
+
+    unique_domains = []
+    for domain in domains:
+        if domain not in unique_domains:
+            unique_domains.append(domain)
+
+    return unique_domains
+
 # 依赖注入
 def get_db():
     db = SessionLocal()
@@ -323,8 +342,8 @@ async def send_email(request: SendEmailRequest):
 
                 # 检查域名是否在允许列表中
                 domain = request.from_email.split('@')[1]
-                allowed_domains = os.getenv("ALLOWED_DOMAINS", "example.com").split(',')
-                if domain not in [d.strip() for d in allowed_domains]:
+                allowed_domains = parse_allowed_domains()
+                if domain not in allowed_domains:
                     raise HTTPException(status_code=400, detail=f"域名 {domain} 不被允许")
 
                 logger.info(f"使用动态认证邮箱: {request.from_email}")
@@ -398,24 +417,11 @@ async def get_system_stats():
             ).count()
             total_codes = db.query(VerificationCode).count()
 
-            # 执行Mailu数据同步（使用同步方式避免事件循环冲突）
+            # 执行Mailu数据同步（异步HTTP请求避免阻塞事件循环）
             try:
-                import requests
-                import os
-
-                api_url = os.getenv("API_URL")
-                token = os.getenv("API_TOKEN")
-
-                if not api_url or not token:
-                    raise ValueError("Mailu API配置缺失")
-
-                base_url = api_url if api_url.endswith('/') else f"{api_url}/"
-                headers = {"Authorization": f"Bearer {token}"}
-
-                response = requests.get(f"{base_url}user", headers=headers, timeout=30.0)
-                response.raise_for_status()
-                mailu_users = response.json()
-                mailu_users_count = len(mailu_users)
+                async with MailuClient() as client:
+                    mailu_users = await client.list_users()
+                    mailu_users_count = len(mailu_users)
 
                 sync_result = {
                     "sync_status": "success",
@@ -540,7 +546,14 @@ async def verification_page(request: Request):
 @app.get("/emails")
 async def emails_page(request: Request):
     """邮箱管理页面"""
-    return templates.TemplateResponse("emails.html", {"request": request})
+    allowed_domains = parse_allowed_domains()
+    return templates.TemplateResponse(
+        "emails.html",
+        {
+            "request": request,
+            "allowed_domains": allowed_domains
+        }
+    )
 
 @app.get("/send")
 async def send_page(request: Request):

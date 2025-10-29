@@ -55,10 +55,19 @@ services:
       - DATABASE_URL=mysql+pymysql://${MYSQL_USER:-mailu_user}:${MYSQL_PASSWORD:-mailu_password}@mysql:3306/${MYSQL_DATABASE:-mailu_codes}
       - REDIS_HOST=redis
       - REDIS_PORT=6379
+      - REDIS_DB=${REDIS_DB:-0}
+      - REDIS_PASSWORD=${REDIS_PASSWORD:-}
       - CELERY_BROKER_URL=redis://redis:6379/1
       - CELERY_RESULT_BACKEND=redis://redis:6379/2
       - API_URL=${API_URL}
       - API_TOKEN=${API_TOKEN}
+      - DEFAULT_DOMAIN=${DEFAULT_DOMAIN:-example.com}
+      - ALLOWED_DOMAINS=${ALLOWED_DOMAINS:-}
+      - IMAP_SERVER=${IMAP_SERVER}
+      - IMAP_PORT=${IMAP_PORT:-993}
+      - IMAP_USE_SSL=${IMAP_USE_SSL:-true}
+      - SMTP_SERVER=${SMTP_SERVER}
+      - SMTP_PORT=${SMTP_PORT:-25}
       - TZ=Asia/Shanghai
     ports:
       - "8000:8000"
@@ -89,10 +98,19 @@ services:
       - DATABASE_URL=mysql+pymysql://${MYSQL_USER:-mailu_user}:${MYSQL_PASSWORD:-mailu_password}@mysql:3306/${MYSQL_DATABASE:-mailu_codes}
       - REDIS_HOST=redis
       - REDIS_PORT=6379
+      - REDIS_DB=${REDIS_DB:-0}
+      - REDIS_PASSWORD=${REDIS_PASSWORD:-}
       - CELERY_BROKER_URL=redis://redis:6379/1
       - CELERY_RESULT_BACKEND=redis://redis:6379/2
       - API_URL=${API_URL}
       - API_TOKEN=${API_TOKEN}
+      - DEFAULT_DOMAIN=${DEFAULT_DOMAIN:-example.com}
+      - ALLOWED_DOMAINS=${ALLOWED_DOMAINS:-}
+      - IMAP_SERVER=${IMAP_SERVER}
+      - IMAP_PORT=${IMAP_PORT:-993}
+      - IMAP_USE_SSL=${IMAP_USE_SSL:-true}
+      - SMTP_SERVER=${SMTP_SERVER}
+      - SMTP_PORT=${SMTP_PORT:-25}
       - TZ=Asia/Shanghai
     volumes:
       - ./backend:/app/backend
@@ -118,10 +136,19 @@ services:
       - DATABASE_URL=mysql+pymysql://${MYSQL_USER:-mailu_user}:${MYSQL_PASSWORD:-mailu_password}@mysql:3306/${MYSQL_DATABASE:-mailu_codes}
       - REDIS_HOST=redis
       - REDIS_PORT=6379
+      - REDIS_DB=${REDIS_DB:-0}
+      - REDIS_PASSWORD=${REDIS_PASSWORD:-}
       - CELERY_BROKER_URL=redis://redis:6379/1
       - CELERY_RESULT_BACKEND=redis://redis:6379/2
       - API_URL=${API_URL}
       - API_TOKEN=${API_TOKEN}
+      - DEFAULT_DOMAIN=${DEFAULT_DOMAIN:-example.com}
+      - ALLOWED_DOMAINS=${ALLOWED_DOMAINS:-}
+      - IMAP_SERVER=${IMAP_SERVER}
+      - IMAP_PORT=${IMAP_PORT:-993}
+      - IMAP_USE_SSL=${IMAP_USE_SSL:-true}
+      - SMTP_SERVER=${SMTP_SERVER}
+      - SMTP_PORT=${SMTP_PORT:-25}
       - TZ=Asia/Shanghai
     volumes:
       - ./backend:/app/backend

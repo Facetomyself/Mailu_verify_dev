@@ -373,7 +373,8 @@ def check_imap_emails(email_addr: str, password: str) -> List[Dict]:
             mail = imaplib.IMAP4(imap_server, imap_port)
 
         # 设置超时时间
-        mail.socket().settimeout(30)
+        if getattr(mail, "sock", None):
+            mail.sock.settimeout(30)
 
         try:
             # 登录
